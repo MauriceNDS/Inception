@@ -1,0 +1,77 @@
+version: '3'
+
+services:
+  nginx:
+    build:
+      context: ./requirements/nginx
+      args:
+        - DOMAIN_NAME=${DOMAIN_NAME}
+    restart: always
+    container_name: nginx
+    image: nginx:inception
+    hostname: nginx
+    networks:
+      - mynetwork
+    ports:
+      - "443:443"
+    volumes:
+      - 'wp_vol:/var/www/html/wordpress/'
+    depends_on:
+      - wordpress
+
+  wordpress:
+    build:
+      context: ./requirements/wordpress_php
+    env_file: .env
+    restart: always
+    container_name: wordpress
+    image: wordpress:inception
+    hostname: wordpress
+    networks:
+      - mynetwork
+    expose:
+      - "9000"
+    volumes:
+      - 'wp_vol:/var/www/html/wordpress/'
+    depends_on:
+      - mariadb
+
+  mariadb:
+    build:
+      context: ./requirements/mariadb
+      args:
+        - DB_NAME=${DB_NAME}
+        - DB_USER=${DB_USER}
+        - DB_PASSWORD=${DB_PASSWORD}
+        - DB_HOST=${DB_HOST}
+        - DOMAIN_NAME=${DOMAIN_NAME}
+        - DEBIAN_FRONTEND=${DEBIAN_FRONTEND}
+        - ROOT_PASSWORD=${ROOT_PASSWORD}
+    restart: always
+    container_name: mariadb
+    image: mariadb:inception
+    hostname: mariadb
+    networks:
+      - mynetwork
+    expose:
+      - "3306"
+    volumes:
+      - 'db_vol:/var/lib/mysql/'
+
+volumes:
+  wp_vol:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/adelsol/data/wordpress/
+  db_vol:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/adelsol/data/db/
+
+networks:
+  mynetwork:
+    driver: bridge
